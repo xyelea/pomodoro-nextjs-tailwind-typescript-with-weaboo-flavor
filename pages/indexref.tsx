@@ -1,57 +1,40 @@
-import type { NextPage } from "next";
-import Head from "next/head";
-import Image from "next/image";
-import Navigation from "../components/Navigation";
-import Timer from "../components/Timer";
+import React, { useEffect, useRef, useState } from "react";
 import About from "../components/About";
-import { useEffect, useState, useRef, Dispatch, SetStateAction } from "react";
 import Alarm from "../components/Alarm";
 import ModalSetting from "../components/ModalSetting";
+import Navigation from "../components/Navigation";
+import Timer from "../components/Timer";
 
-enum TimerStage {
-  Pomodoro = 0,
-  ShortBreak = 1,
-  LongBreak = 2,
-}
-
-interface Props {
-  openSetting: boolean;
-  setOpenSetting: Dispatch<SetStateAction<boolean>>;
-  //props lain yang digunakan pada komponen
-}
-
-const Home: NextPage = () => {
+export default function index() {
   const [pomodoro, setPomodoro] = useState(25);
   const [shortBreak, setShortBreak] = useState(5);
   const [longBreak, setLongBreak] = useState(10);
   const [seconds, setSecond] = useState(0);
-  const [ticking, setTicking] = useState(false);
+  const [stage, setStage] = useState(0);
   const [consumedSecond, setConsumedSecond] = useState(0);
-  const [stage, setStage] = useState<TimerStage>(TimerStage.Pomodoro);
+  const [ticking, setTicking] = useState(false);
   const [isTimeUp, setIsTimeUp] = useState(false);
-  const [openSetting, setOpenSetting] = useState<boolean>(false);
-  const alarmRef = useRef<HTMLAudioElement>();
-  const pomodoroRef = useRef<HTMLInputElement>(null);
-  const shortBreakRef = useRef<HTMLInputElement>(null);
-  const longBreakRef = useRef<HTMLInputElement>(null);
+  const [openSetting, setOpenSetting] = useState(false);
 
-  const updateTimeDefaultValue = (value: number) => {
-    if (pomodoroRef.current) {
-      setPomodoro(parseInt(pomodoroRef.current.value));
-    }
-    if (shortBreakRef.current) {
-      setShortBreak(parseInt(shortBreakRef.current.value));
-    }
-    if (longBreakRef.current) {
-      setLongBreak(parseInt(longBreakRef.current.value));
-    }
+  const alarmRef = useRef();
+  const pomodoroRef = useRef();
+  const shortBreakRef = useRef();
+  const longBreakRef = useRef();
+
+  const updateTimeDefaultValue = () => {
+    setPomodoro(pomodoroRef.current.value);
+    setShortBreak(shortBreakRef.current.value);
+    setLongBreak(longBreakRef.current.value);
     setOpenSetting(false);
     setSecond(0);
+    setConsumedSecond(0);
   };
 
-  const switchStage = (index: TimerStage) => {
+  const switchStage = (index) => {
     const isYes =
-      consumedSecond && stage !== index ? confirm("anda yakin ?") : false;
+      consumedSecond && stage !== index
+        ? confirm("Are you sure you want to switch?")
+        : false;
     if (isYes) {
       reset();
       setStage(index);
@@ -60,13 +43,20 @@ const Home: NextPage = () => {
     }
   };
 
+  const getTickingTime = () => {
+    const timeStage = {
+      0: pomodoro,
+      1: shortBreak,
+      2: longBreak,
+    };
+    return timeStage[stage];
+  };
   const updateMinute = () => {
     const updateStage = {
       0: setPomodoro,
       1: setShortBreak,
       2: setLongBreak,
     };
-
     return updateStage[stage];
   };
 
@@ -74,14 +64,15 @@ const Home: NextPage = () => {
     setConsumedSecond(0);
     setTicking(false);
     setSecond(0);
-    updateTimeDefaultValue(0);
+    updateTimeDefaultValue();
   };
 
   const timeUp = () => {
     reset();
     setIsTimeUp(true);
-    alarmRef.current?.play();
+    alarmRef.current.play();
   };
+
   const clockTicking = () => {
     const minutes = getTickingTime();
     const setMinutes = updateMinute();
@@ -95,24 +86,12 @@ const Home: NextPage = () => {
       setSecond((second) => second - 1);
     }
   };
-
-  const getTickingTime = () => {
-    const timeStage = {
-      [TimerStage.Pomodoro]: pomodoro,
-      [TimerStage.ShortBreak]: shortBreak,
-      [TimerStage.LongBreak]: longBreak,
-    };
-    return timeStage[stage];
+  const muteAlarm = () => {
+    alarmRef.current.pause();
+    alarmRef.current.currentTime = 0;
   };
 
-  const muteAlarm = (): void => {
-    if (alarmRef.current) {
-      alarmRef.current.pause();
-      alarmRef.current.currentTime = 0;
-    }
-  };
-
-  const startTimer = (): void => {
+  const startTimer = () => {
     setIsTimeUp(false);
     muteAlarm();
     setTicking((ticking) => !ticking);
@@ -120,7 +99,7 @@ const Home: NextPage = () => {
 
   useEffect(() => {
     window.onbeforeunload = () => {
-      return consumedSecond ? "show warning" : null;
+      return consumedSecond ? "Show waring" : null;
     };
 
     const timer = setInterval(() => {
@@ -163,6 +142,4 @@ const Home: NextPage = () => {
       </div>
     </div>
   );
-};
-
-export default Home;
+}
